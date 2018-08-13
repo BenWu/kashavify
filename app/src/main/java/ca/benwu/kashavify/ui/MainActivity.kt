@@ -99,8 +99,6 @@ class MainActivity : AppCompatActivity() {
             private val cameraView: CameraView,
             private val faceOverlay: FaceOverlayView) : LifecycleObserver {
 
-        private var frameCount = 0
-
         private val detectorOptions = FirebaseVisionFaceDetectorOptions.Builder()
                 .setLandmarkType(FirebaseVisionFaceDetectorOptions.ALL_LANDMARKS)
                 .build()
@@ -110,11 +108,7 @@ class MainActivity : AppCompatActivity() {
         fun startCamera() {
             cameraView.start()
             cameraView.addFrameProcessor { frame ->
-                // Skip frames in processing to reduce jitter and cpu load
-                if (++frameCount > 10000) {
-                    frameCount = 0
-                }
-                if (frameCount % 3 != 0) {
+                if (frame.size == null) {
                     return@addFrameProcessor
                 }
 
