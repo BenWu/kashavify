@@ -8,6 +8,7 @@ import android.view.View;
 
 import com.google.firebase.ml.vision.face.FirebaseVisionFace;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceLandmark;
+import com.otaliastudios.cameraview.Facing;
 
 public class FaceOverlayView extends View {
 
@@ -18,6 +19,8 @@ public class FaceOverlayView extends View {
     private int mPreviewHeight = 0;
 
     private FirebaseVisionFace mFace;
+
+    private Facing mFacing = Facing.FRONT;
 
     public FaceOverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -33,29 +36,18 @@ public class FaceOverlayView extends View {
         drawGlasses(canvas, mFace);
     }
 
-    public void init(int previewWidth, int previewHeight) {
+    public void init(int previewWidth, int previewHeight, Facing facing) {
         mPreviewWidth = previewWidth;
         mPreviewHeight = previewHeight;
-    }
-
-    private float translateX(float x) {
-        return getWidth() - scaleX(x);
-    }
-
-    private float translateY(float y) {
-        return scaleY(y);
-    }
-
-    private float scaleX(float x) {
-        return x * mWidthScaleFactor;
-    }
-
-    private float scaleY(float y) {
-        return y * mHeightScaleFactor;
+        mFacing = facing;
     }
 
     public void setFace(FirebaseVisionFace face) {
         mFace = face;
+    }
+
+    public void setFacing(Facing facing) {
+        mFacing = facing;
     }
 
     private float getXFromLandmark(FirebaseVisionFaceLandmark landmark, float offset) {
@@ -72,6 +64,24 @@ public class FaceOverlayView extends View {
 
     private float getYFromLandmark(FirebaseVisionFaceLandmark landmark) {
         return getYFromLandmark(landmark, 0);
+    }
+
+    private float translateX(float x) {
+        return mFacing == Facing.FRONT
+                ? getWidth() - scaleX(x)
+                : scaleX(x);
+    }
+
+    private float translateY(float y) {
+        return scaleY(y);
+    }
+
+    private float scaleX(float x) {
+        return x * mWidthScaleFactor;
+    }
+
+    private float scaleY(float y) {
+        return y * mHeightScaleFactor;
     }
 
     private void drawGlasses(Canvas canvas, FirebaseVisionFace face) {
