@@ -37,4 +37,15 @@
         android:layout_margin="16dp"
         android:src="@drawable/camera_front_24" />
 
+    <ca.benwu.kashavify.views.CustomFontTextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="32sp"
+        android:gravity="center"
+        android:text="@string/app_name"
+        android:textColor="@color/colorAccent"
+        android:textSize="48sp"
+        android:textAllCaps="true"
+        android:background="@drawable/gradient_black_top_bottom"/>
+
 </FrameLayout>

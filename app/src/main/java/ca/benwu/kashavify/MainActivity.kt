@@ -30,12 +30,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        if (supportActionBar != null) {
-            supportActionBar?.setCustomView(R.layout.title_action_bar)
-            supportActionBar?.setDisplayShowCustomEnabled(true)
-            supportActionBar?.setDisplayShowTitleEnabled(false)
-        }
-
         setupViews()
 
         tryStartCamera()
