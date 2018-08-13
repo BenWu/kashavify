@@ -1,14 +1,20 @@
 package ca.benwu.kashavify.views;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.View;
 
 import com.google.firebase.ml.vision.face.FirebaseVisionFace;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceLandmark;
 import com.otaliastudios.cameraview.Facing;
+
+import ca.benwu.kashavify.R;
 
 public class FaceOverlayView extends View {
 
@@ -22,8 +28,11 @@ public class FaceOverlayView extends View {
 
     private Facing mFacing = Facing.FRONT;
 
+    private Bitmap mHairBitmap;
+
     public FaceOverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        mHairBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.hair);
     }
 
     @Override
@@ -84,6 +93,21 @@ public class FaceOverlayView extends View {
         return y * mHeightScaleFactor;
     }
 
+    private Rect translateBoundingBox(Rect rect) {
+        return translateBoundingBox(rect, 0);
+    }
+
+    private Rect translateBoundingBox(Rect rect, int padding) {
+        int horzModifier = mFacing == Facing.FRONT ? 1 : -1;
+
+        Rect translated = new Rect();
+        translated.top = (int) translateY(rect.top) - padding;
+        translated.bottom = (int) translateY(rect.bottom) + padding;
+        translated.left = (int) translateX(rect.left) + padding * horzModifier;
+        translated.right = (int) translateX(rect.right) - padding * horzModifier;
+        return translated;
+    }
+
     private void drawGlasses(Canvas canvas, FirebaseVisionFace face) {
         if (face == null) {
             return;
@@ -102,27 +126,22 @@ public class FaceOverlayView extends View {
                 FirebaseVisionFaceLandmark.RIGHT_MOUTH
         };
 
-        int[] colors = new int[] {
-                0xff000000,
-                0xff0000ff,
-                0xff00ff00,
-                0xffff0000,
-                0xff00ffff,
-                0xffff00ff,
-                0xff0000ff,
-                0xff00ff00,
-                0xffff0000,
-                0xff00ffff,
-        };
+        float headTilt = face.getHeadEulerAngleZ();
 
-        for (int type = 0 ; type < landmarkTypes.length ; type++) {
-            Paint paint = new Paint();
-            paint.setColor(colors[type]);
-            FirebaseVisionFaceLandmark landmark = face.getLandmark(landmarkTypes[type]);
-            if (landmark != null) {
-                float size = 50;
-                canvas.drawCircle(getXFromLandmark(landmark), getYFromLandmark(landmark), size, paint);
-            }
-        }
+        Matrix rotationMatrix = new Matrix();
+        rotationMatrix.postRotate(-headTilt);
+
+        Bitmap rotatedHair = Bitmap.createBitmap(mHairBitmap, 0, 0,
+                mHairBitmap.getWidth(), mHairBitmap.getHeight(), rotationMatrix, true);
+
+        canvas.drawBitmap(rotatedHair, null,
+                translateBoundingBox(face.getBoundingBox(), 60 + (int) Math.abs(headTilt) * 8), null);
+
+        Paint outlinePaint = new Paint();
+        outlinePaint.setColor(0xffff0000);
+        outlinePaint.setStrokeWidth(5f);
+        outlinePaint.setStyle(Paint.Style.STROKE);
+
+        canvas.drawRect(translateBoundingBox(face.getBoundingBox()), outlinePaint);
     }
 }
