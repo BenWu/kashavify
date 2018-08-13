@@ -1,4 +1,4 @@
-package ca.benwu.kashavify
+package ca.benwu.kashavify.ui
 
 import android.Manifest
 import android.arch.lifecycle.Lifecycle
@@ -11,6 +11,7 @@ import android.view.View
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.OvershootInterpolator
 import android.widget.ImageButton
+import ca.benwu.kashavify.R
 import ca.benwu.kashavify.views.FaceOverlayView
 import com.google.firebase.ml.vision.FirebaseVision
 import com.google.firebase.ml.vision.common.FirebaseVisionImage
