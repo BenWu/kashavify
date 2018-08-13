@@ -2,10 +2,36 @@
 
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
-        <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
     </style>
+
+    <style name="ActionBarTheme" parent="AppTheme">
+        <item name="android:actionBarStyle">@style/CustomActionBar</item>
+        <item name="android:actionBarTabStyle">@style/CustomActionBarTabText</item>
+        <item name="actionBarStyle">@style/CustomActionBar</item>
+        <item name="actionBarTabStyle">@style/CustomActionBarTabText</item>
+        <item name="actionMenuTextColor">@color/colorAccent</item>
+    </style>
+
+    <style name="CustomActionBar" parent="@style/Widget.AppCompat.ActionBar">
+        <item name="android:background">@color/colorPrimary</item>
+        <item name="android:titleTextStyle">@style/CustomActionBarText</item>
+        <item name="background">@color/colorPrimary</item>
+        <item name="titleTextStyle">@style/CustomActionBarText</item>
+    </style>
+
+    <style name="CustomActionBarText" parent="@style/TextAppearance.AppCompat.Widget.ActionBar.Title">
+        <item name="android:textColor">@color/colorAccent</item>
+        <item name="android:titleTextColor">@color/colorAccent</item>
+    </style>
+
+    <style name="CustomActionBarTabText"
+        parent="@style/Widget.AppCompat.ActionBar.TabText">
+        <item name="android:textColor">@color/colorAccent</item>
+        <item name="android:titleTextColor">@color/colorAccent</item>
+    </style>
+
 
 </resources>

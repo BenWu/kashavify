@@ -7,7 +7,7 @@ import android.Manifest
 import android.arch.lifecycle.Lifecycle
 import android.arch.lifecycle.LifecycleObserver
 import android.arch.lifecycle.OnLifecycleEvent
-import android.util.Log
+import ca.benwu.kashavify.views.FaceOverlayView
 import com.google.firebase.ml.vision.FirebaseVision
 import com.google.firebase.ml.vision.common.FirebaseVisionImage
 import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata
@@ -16,13 +16,17 @@ import com.otaliastudios.cameraview.CameraView
 
 class MainActivity : AppCompatActivity() {
 
-    private val TAG = this.javaClass.simpleName
-
     private val CAMERA_PERMISSION_REQ_CODE = 123
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        if (supportActionBar != null) {
+            supportActionBar?.setCustomView(R.layout.title_action_bar)
+            supportActionBar?.setDisplayShowCustomEnabled(true)
+            supportActionBar?.setDisplayShowTitleEnabled(false)
+        }
 
         tryStartCamera()
     }
@@ -58,7 +62,8 @@ class MainActivity : AppCompatActivity() {
     class MainActivityLifecycleObserver(
             private val cameraView: CameraView,
             private val faceOverlay: FaceOverlayView) : LifecycleObserver {
-        val TAG = this.javaClass.simpleName
+
+        private var frameCount = 0
 
         private val detectorOptions = FirebaseVisionFaceDetectorOptions.Builder()
                 .setLandmarkType(FirebaseVisionFaceDetectorOptions.ALL_LANDMARKS)
@@ -69,6 +74,14 @@ class MainActivity : AppCompatActivity() {
         fun startCamera() {
             cameraView.start()
             cameraView.addFrameProcessor { frame ->
+                // Skip frames in processing to reduce jitter and cpu load
+                if (++frameCount > 10000) {
+                    frameCount = 0
+                }
+                if (frameCount % 3 != 0) {
+                    return@addFrameProcessor
+                }
+
                 val metadata = FirebaseVisionImageMetadata.Builder()
                         .setFormat(FirebaseVisionImageMetadata.IMAGE_FORMAT_NV21)
                         .setWidth(frame.size.width)
@@ -85,11 +98,10 @@ class MainActivity : AppCompatActivity() {
                             if (faceList.size > 0) {
                                 val face = faceList[0]
                                 faceOverlay.setFace(face)
-                                faceOverlay.invalidate()
+                            } else if (faceList.isEmpty()) {
+                                faceOverlay.setFace(null)
                             }
-                        }
-                        .addOnFailureListener {exception ->
-
+                            faceOverlay.invalidate()
                         }
             }
         }

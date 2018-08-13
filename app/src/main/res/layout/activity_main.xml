@@ -14,7 +14,7 @@
         android:adjustViewBounds="true"
         app:cameraFacing="front" />
 
-    <ca.benwu.kashavify.FaceOverlayView
+    <ca.benwu.kashavify.views.FaceOverlayView
         android:id="@+id/face_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
