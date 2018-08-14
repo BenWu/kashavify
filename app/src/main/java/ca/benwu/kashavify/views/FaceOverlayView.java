@@ -169,6 +169,26 @@ public class FaceOverlayView extends View {
 
         int faceWidth = translatedFaceBox.right - translatedFaceBox.left;
 
+        FirebaseVisionFaceLandmark leftCheek = face.getLandmark(FirebaseVisionFaceLandmark.LEFT_CHEEK);
+        FirebaseVisionFaceLandmark rightCheek = face.getLandmark(FirebaseVisionFaceLandmark.RIGHT_CHEEK);
+
+        // Draw beard
+        Bitmap rotatedBeard = transformBitmap(mBeard, rotationMatrix);
+
+        if (leftCheek != null && rightCheek != null) {
+            int margin = (int) (faceWidth * 0.1);
+
+            float heightToWidth = (float) mBeard.getHeight() / mBeard.getWidth();
+            int height = (int) Math.abs(heightToWidth * (faceWidth - margin * 2));
+
+            int topY = translatedFaceBox.bottom - height / 2;
+
+            Rect beardRect = new Rect(translatedFaceBox.left + margin, topY,
+                    translatedFaceBox.right - margin, topY + height);
+
+            canvas.drawBitmap(rotatedBeard, null, beardRect, null);
+        }
+
         // Draw hair
         Bitmap rotatedHair = transformBitmap(mHairBitmap, rotationMatrix);
         canvas.drawBitmap(rotatedHair, null,
@@ -195,26 +215,6 @@ public class FaceOverlayView extends View {
                     translatedFaceBox.right - margin, bottomY + height);
 
             canvas.drawBitmap(rotatedGlasses, null, glassesRect, null);
-        }
-
-        FirebaseVisionFaceLandmark leftCheek = face.getLandmark(FirebaseVisionFaceLandmark.LEFT_CHEEK);
-        FirebaseVisionFaceLandmark rightCheek = face.getLandmark(FirebaseVisionFaceLandmark.RIGHT_CHEEK);
-
-        // Draw beard
-        Bitmap rotatedBeard = transformBitmap(mBeard, rotationMatrix);
-
-        if (leftCheek != null && rightCheek != null) {
-            int margin = (int) (faceWidth * 0.1);
-
-            float heightToWidth = (float) mBeard.getHeight() / mBeard.getWidth();
-            int height = (int) Math.abs(heightToWidth * (faceWidth - margin * 2));
-
-            int topY = translatedFaceBox.bottom - height / 2;
-
-            Rect beardRect = new Rect(translatedFaceBox.left + margin, topY,
-                    translatedFaceBox.right - margin, topY + height);
-
-            canvas.drawBitmap(rotatedBeard, null, beardRect, null);
         }
 
         //canvas.drawRect(translatedFaceBox, outlinePaint);
