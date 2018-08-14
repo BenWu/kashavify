@@ -10,6 +10,7 @@ import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.View;
 
+import com.google.firebase.ml.vision.common.FirebaseVisionPoint;
 import com.google.firebase.ml.vision.face.FirebaseVisionFace;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceLandmark;
 import com.otaliastudios.cameraview.Facing;
@@ -29,10 +30,15 @@ public class FaceOverlayView extends View {
     private Facing mFacing = Facing.FRONT;
 
     private Bitmap mHairBitmap;
+    private Bitmap mLeftBrow;
+    private Bitmap mRightBrow;
+    private Bitmap mGlasses;
+    private Bitmap mMoustache;
+    private Bitmap mBeard;
 
     public FaceOverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        mHairBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.hair);
+        preloadBitmaps();
     }
 
     @Override
@@ -43,6 +49,15 @@ public class FaceOverlayView extends View {
         mHeightScaleFactor = (float) canvas.getHeight() / mPreviewHeight;
 
         drawGlasses(canvas, mFace);
+    }
+
+    private void preloadBitmaps() {
+        mHairBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.hair);
+        mLeftBrow = BitmapFactory.decodeResource(getResources(), R.drawable.left_brow);
+        mRightBrow = BitmapFactory.decodeResource(getResources(), R.drawable.right_brow);
+        mGlasses = BitmapFactory.decodeResource(getResources(), R.drawable.glasses);
+        mMoustache = BitmapFactory.decodeResource(getResources(), R.drawable.moustache);
+        mBeard = BitmapFactory.decodeResource(getResources(), R.drawable.beard);
     }
 
     public void init(int previewWidth, int previewHeight, Facing facing) {
@@ -58,6 +73,8 @@ public class FaceOverlayView extends View {
     public void setFacing(Facing facing) {
         mFacing = facing;
     }
+
+    // TODO: Move some of these to utils
 
     private float getXFromLandmark(FirebaseVisionFaceLandmark landmark, float offset) {
         return translateX(landmark.getPosition().getX()) + offset;
@@ -93,19 +110,43 @@ public class FaceOverlayView extends View {
         return y * mHeightScaleFactor;
     }
 
+    // when using front facing camera, x-axis is mirrored
+    private int xCorrection() {
+        return mFacing == Facing.FRONT ? 1 : -1;
+    }
+
     private Rect translateBoundingBox(Rect rect) {
         return translateBoundingBox(rect, 0);
     }
 
     private Rect translateBoundingBox(Rect rect, int padding) {
-        int horzModifier = mFacing == Facing.FRONT ? 1 : -1;
-
         Rect translated = new Rect();
         translated.top = (int) translateY(rect.top) - padding;
         translated.bottom = (int) translateY(rect.bottom) + padding;
-        translated.left = (int) translateX(rect.left) + padding * horzModifier;
-        translated.right = (int) translateX(rect.right) - padding * horzModifier;
+        translated.left = (int) translateX(rect.left) + padding * xCorrection();
+        translated.right = (int) translateX(rect.right) - padding * xCorrection();
         return translated;
+    }
+
+    // hardcode translate bounding box to get closer to actual face
+    // TODO: Should probably figure out why bbox doesn't overlay face properly
+    private void hardcodedOffset(Rect rect) {
+        rect.top += 50;
+        rect.bottom += 50;
+        rect.left -= 50 * xCorrection();
+        rect.right -= 50 * xCorrection();
+    }
+
+    private Bitmap rotateBitmap(Bitmap bitmap, float angle) {
+        Matrix rotationMatrix = new Matrix();
+        rotationMatrix.postRotate(angle);
+
+        return transformBitmap(bitmap, rotationMatrix);
+    }
+
+    private Bitmap transformBitmap(Bitmap bitmap, Matrix matrix) {
+        return Bitmap.createBitmap(bitmap, 0, 0,
+                bitmap.getWidth(), bitmap.getHeight(), matrix, true);
     }
 
     private void drawGlasses(Canvas canvas, FirebaseVisionFace face) {
@@ -113,35 +154,69 @@ public class FaceOverlayView extends View {
             return;
         }
 
-        int[] landmarkTypes = new int[] {
-                FirebaseVisionFaceLandmark.BOTTOM_MOUTH,
-                FirebaseVisionFaceLandmark.LEFT_CHEEK,
-                FirebaseVisionFaceLandmark.LEFT_EAR,
-                FirebaseVisionFaceLandmark.LEFT_EYE,
-                FirebaseVisionFaceLandmark.LEFT_MOUTH,
-                FirebaseVisionFaceLandmark.NOSE_BASE,
-                FirebaseVisionFaceLandmark.RIGHT_CHEEK,
-                FirebaseVisionFaceLandmark.RIGHT_EAR,
-                FirebaseVisionFaceLandmark.RIGHT_EYE,
-                FirebaseVisionFaceLandmark.RIGHT_MOUTH
-        };
-
-        float headTilt = face.getHeadEulerAngleZ();
-
-        Matrix rotationMatrix = new Matrix();
-        rotationMatrix.postRotate(-headTilt);
-
-        Bitmap rotatedHair = Bitmap.createBitmap(mHairBitmap, 0, 0,
-                mHairBitmap.getWidth(), mHairBitmap.getHeight(), rotationMatrix, true);
-
-        canvas.drawBitmap(rotatedHair, null,
-                translateBoundingBox(face.getBoundingBox(), 60 + (int) Math.abs(headTilt) * 8), null);
-
         Paint outlinePaint = new Paint();
         outlinePaint.setColor(0xffff0000);
         outlinePaint.setStrokeWidth(5f);
         outlinePaint.setStyle(Paint.Style.STROKE);
 
-        canvas.drawRect(translateBoundingBox(face.getBoundingBox()), outlinePaint);
+        hardcodedOffset(face.getBoundingBox());
+
+        Rect translatedFaceBox = translateBoundingBox(face.getBoundingBox());
+
+        float headTilt = face.getHeadEulerAngleZ();
+        Matrix rotationMatrix = new Matrix();
+        rotationMatrix.postRotate(-headTilt);
+
+        int faceWidth = translatedFaceBox.right - translatedFaceBox.left;
+
+        // Draw hair
+        Bitmap rotatedHair = transformBitmap(mHairBitmap, rotationMatrix);
+        canvas.drawBitmap(rotatedHair, null,
+                translateBoundingBox(face.getBoundingBox(), 60 + (int) Math.abs(headTilt) * 8), null);
+
+        FirebaseVisionFaceLandmark leftEye = face.getLandmark(FirebaseVisionFaceLandmark.LEFT_EYE);
+        FirebaseVisionFaceLandmark rightEye = face.getLandmark(FirebaseVisionFaceLandmark.RIGHT_EYE);
+
+        // Draw glasses
+        Bitmap rotatedGlasses = transformBitmap(mGlasses, rotationMatrix);
+
+        if (leftEye != null && rightEye != null) {
+            FirebaseVisionPoint leftPos = leftEye.getPosition();
+            FirebaseVisionPoint rightPos = rightEye.getPosition();
+            int topY = (int) Math.min(leftPos.getY(), rightPos.getY());
+            int bottomY = (int) Math.max(leftPos.getY(), rightPos.getY());
+
+            int margin = (int) (faceWidth * 0.1);
+
+            float heightToWidth = (float) mGlasses.getHeight() / mGlasses.getWidth();
+            int height = (int) Math.abs(heightToWidth * (faceWidth - margin * 2));
+
+            Rect glassesRect = new Rect(translatedFaceBox.left + margin, topY,
+                    translatedFaceBox.right - margin, bottomY + height);
+
+            canvas.drawBitmap(rotatedGlasses, null, glassesRect, null);
+        }
+
+        FirebaseVisionFaceLandmark leftCheek = face.getLandmark(FirebaseVisionFaceLandmark.LEFT_CHEEK);
+        FirebaseVisionFaceLandmark rightCheek = face.getLandmark(FirebaseVisionFaceLandmark.RIGHT_CHEEK);
+
+        // Draw beard
+        Bitmap rotatedBeard = transformBitmap(mBeard, rotationMatrix);
+
+        if (leftCheek != null && rightCheek != null) {
+            int margin = (int) (faceWidth * 0.1);
+
+            float heightToWidth = (float) mBeard.getHeight() / mBeard.getWidth();
+            int height = (int) Math.abs(heightToWidth * (faceWidth - margin * 2));
+
+            int topY = translatedFaceBox.bottom - height / 2;
+
+            Rect beardRect = new Rect(translatedFaceBox.left + margin, topY,
+                    translatedFaceBox.right - margin, topY + height);
+
+            canvas.drawBitmap(rotatedBeard, null, beardRect, null);
+        }
+
+        //canvas.drawRect(translatedFaceBox, outlinePaint);
     }
 }
