@@ -191,8 +191,8 @@ public class FaceOverlayView extends View {
 
         // Draw hair
         Bitmap rotatedHair = transformBitmap(mHairBitmap, rotationMatrix);
-        canvas.drawBitmap(rotatedHair, null,
-                translateBoundingBox(face.getBoundingBox(), 60 + (int) Math.abs(headTilt) * 8), null);
+        Rect hairRect = translateBoundingBox(face.getBoundingBox(), 60 + (int) Math.abs(headTilt) * 8);
+        canvas.drawBitmap(rotatedHair, null, hairRect, null);
 
         FirebaseVisionFaceLandmark leftEye = face.getLandmark(FirebaseVisionFaceLandmark.LEFT_EYE);
         FirebaseVisionFaceLandmark rightEye = face.getLandmark(FirebaseVisionFaceLandmark.RIGHT_EYE);

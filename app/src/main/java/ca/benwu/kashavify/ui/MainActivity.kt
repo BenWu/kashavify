@@ -109,6 +109,8 @@ class MainActivity : AppCompatActivity() {
         @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
         fun startCamera() {
             cameraView.start()
+            
+            // TODO: Add frame processor should re-run on camera change
             cameraView.addFrameProcessor { frame ->
                 // Skip frames in processing to reduce jitter and cpu load
                 if (++frameCount > 10000) {
