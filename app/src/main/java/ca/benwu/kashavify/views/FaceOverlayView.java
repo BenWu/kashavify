@@ -92,8 +92,12 @@ public class FaceOverlayView extends View {
         return getYFromLandmark(landmark, 0);
     }
 
+    private boolean usingFrontCam() {
+        return mFacing == Facing.FRONT;
+    }
+
     private float translateX(float x) {
-        return mFacing == Facing.FRONT
+        return usingFrontCam()
                 ? getWidth() - scaleX(x)
                 : scaleX(x);
     }
@@ -110,11 +114,6 @@ public class FaceOverlayView extends View {
         return y * mHeightScaleFactor;
     }
 
-    // when using front facing camera, x-axis is mirrored
-    private int xCorrection() {
-        return mFacing == Facing.FRONT ? 1 : -1;
-    }
-
     private Rect translateBoundingBox(Rect rect) {
         return translateBoundingBox(rect, 0);
     }
@@ -123,8 +122,14 @@ public class FaceOverlayView extends View {
         Rect translated = new Rect();
         translated.top = (int) translateY(rect.top) - padding;
         translated.bottom = (int) translateY(rect.bottom) + padding;
-        translated.left = (int) translateX(rect.left) + padding * xCorrection();
-        translated.right = (int) translateX(rect.right) - padding * xCorrection();
+        if (usingFrontCam()) {
+            // swap left and right because of mirroring
+            translated.left = (int) translateX(rect.right) - padding;
+            translated.right = (int) translateX(rect.left) + padding;
+        } else {
+            translated.left = (int) translateX(rect.left) - padding;
+            translated.right = (int) translateX(rect.right) + padding;
+        }
         return translated;
     }
 
@@ -133,8 +138,8 @@ public class FaceOverlayView extends View {
     private void hardcodedOffset(Rect rect) {
         rect.top += 50;
         rect.bottom += 50;
-        rect.left -= 50 * xCorrection();
-        rect.right -= 50 * xCorrection();
+        rect.left -= 50;
+        rect.right -= 50;
     }
 
     private Bitmap rotateBitmap(Bitmap bitmap, float angle) {
@@ -159,15 +164,13 @@ public class FaceOverlayView extends View {
         outlinePaint.setStrokeWidth(5f);
         outlinePaint.setStyle(Paint.Style.STROKE);
 
-        hardcodedOffset(face.getBoundingBox());
-
         Rect translatedFaceBox = translateBoundingBox(face.getBoundingBox());
 
         float headTilt = face.getHeadEulerAngleZ();
         Matrix rotationMatrix = new Matrix();
-        rotationMatrix.postRotate(-headTilt);
+        rotationMatrix.postRotate(headTilt * (usingFrontCam() ? 1 : -1));
 
-        int faceWidth = translatedFaceBox.right - translatedFaceBox.left;
+        int faceWidth = Math.abs(translatedFaceBox.right - translatedFaceBox.left);
 
         FirebaseVisionFaceLandmark leftCheek = face.getLandmark(FirebaseVisionFaceLandmark.LEFT_CHEEK);
         FirebaseVisionFaceLandmark rightCheek = face.getLandmark(FirebaseVisionFaceLandmark.RIGHT_CHEEK);
