@@ -98,8 +98,18 @@ class MainActivity : AppCompatActivity() {
                     if (mCalibrating) this.getDrawable(R.drawable.close_24)
                     else this.getDrawable(R.drawable.control_camera_24))
 
-            flipButton.visibility = if (mCalibrating) View.INVISIBLE else View.VISIBLE
-            calibrateControls.visibility = if (mCalibrating) View.VISIBLE else View.INVISIBLE
+            flipButton.isClickable = !mCalibrating
+            flipButton.visibility = View.VISIBLE
+            calibrateControls.visibility = View.VISIBLE
+
+            val animationDuration = 600L
+            val alpha = if (mCalibrating) 0f else 1f
+            flipButton.animate().alpha(alpha).setDuration(animationDuration).withEndAction {
+                if (mCalibrating) flipButton.visibility = View.INVISIBLE
+            }.start()
+            calibrateControls.animate().alpha(1f - alpha).setDuration(animationDuration).withEndAction {
+                if (!mCalibrating) calibrateControls.visibility = View.INVISIBLE
+            }.start()
         }
 
         val updateOffsetX = {step: Int ->
