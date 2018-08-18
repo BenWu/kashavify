@@ -36,6 +36,9 @@ public class FaceOverlayView extends View {
     private Bitmap mMoustache;
     private Bitmap mBeard;
 
+    private int mOffsetX = 0;
+    private int mOffsetY = 0;
+
     public FaceOverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
         preloadBitmaps();
@@ -64,6 +67,11 @@ public class FaceOverlayView extends View {
         mPreviewWidth = previewWidth;
         mPreviewHeight = previewHeight;
         mFacing = facing;
+    }
+
+    public void setOffsets(int x, int y) {
+        mOffsetX = x;
+        mOffsetY = y;
     }
 
     public void setFace(FirebaseVisionFace face) {
@@ -133,13 +141,12 @@ public class FaceOverlayView extends View {
         return translated;
     }
 
-    // hardcode translate bounding box to get closer to actual face
-    // TODO: Should probably figure out why bbox doesn't overlay face properly
-    private void hardcodedOffset(Rect rect) {
-        rect.top += 50;
-        rect.bottom += 50;
-        rect.left -= 50;
-        rect.right -= 50;
+    // translate bounding box to get closer to actual face
+    private void applyOffset(Rect rect) {
+        rect.top += mOffsetY;
+        rect.bottom += mOffsetY;
+        rect.left += mOffsetX * (usingFrontCam() ? -1 : 1);
+        rect.right += mOffsetX * (usingFrontCam() ? -1 : 1);
     }
 
     private Bitmap rotateBitmap(Bitmap bitmap, float angle) {
@@ -158,6 +165,8 @@ public class FaceOverlayView extends View {
         if (face == null) {
             return;
         }
+
+        applyOffset(face.getBoundingBox());
 
         Paint outlinePaint = new Paint();
         outlinePaint.setColor(0xffff0000);
@@ -214,8 +223,8 @@ public class FaceOverlayView extends View {
             float heightToWidth = (float) mGlasses.getHeight() / mGlasses.getWidth();
             int height = (int) Math.abs(heightToWidth * (faceWidth - margin * 2));
 
-            Rect glassesRect = new Rect(translatedFaceBox.left + margin, topY,
-                    translatedFaceBox.right - margin, bottomY + height);
+            Rect glassesRect = new Rect(translatedFaceBox.left + margin, topY + mOffsetY,
+                    translatedFaceBox.right - margin, bottomY + height + mOffsetY);
 
             canvas.drawBitmap(rotatedGlasses, null, glassesRect, null);
         }

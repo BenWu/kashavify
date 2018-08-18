@@ -27,9 +27,22 @@ class MainActivity : AppCompatActivity() {
     lateinit var mCameraView: CameraView
     lateinit var mFaceOverlay: FaceOverlayView
 
+    private var mCalibrating = false
+
+    private var mFrontOffsetX = 0
+    private var mFrontOffsetY = 0
+    private var mBackOffsetX = 0
+    private var mBackOffsetY = 0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        if (supportActionBar != null) {
+            supportActionBar?.setCustomView(R.layout.title_action_bar)
+            supportActionBar?.setDisplayShowCustomEnabled(true)
+            supportActionBar?.setDisplayShowTitleEnabled(false)
+        }
 
         setupViews()
 
@@ -37,11 +50,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupViews() {
+        mCameraView = findViewById(R.id.camera_view)
+        mFaceOverlay = findViewById(R.id.face_overlay)
+
+        val updateOffsets = {
+            if (mCameraView.facing == Facing.FRONT) {
+                mFaceOverlay.setOffsets(mFrontOffsetX, mFrontOffsetY)
+            } else {
+                mFaceOverlay.setOffsets(mBackOffsetX, mBackOffsetY)
+            }
+        }
+
         val cameraContainer : View = findViewById(R.id.camera_container)
         val flipButton : ImageButton = findViewById(R.id.btn_flip_camera)
         var canFlip = true
-        flipButton.setOnClickListener { _ ->
-            if (this::mCameraView.isInitialized && canFlip) {
+        flipButton.setOnClickListener {
+            if (canFlip) {
                 canFlip = false
 
                 flipButton.animate().scaleX(0f).scaleY(0f).setDuration(1200)
@@ -57,14 +81,47 @@ class MainActivity : AppCompatActivity() {
                     cameraContainer.animate().alpha(1f).setDuration(1000).withEndAction {
                         canFlip = true
                     }.start()
+                    updateOffsets()
                 }.start()
 
                 mCameraView.toggleFacing()
-                if (this::mFaceOverlay.isInitialized) {
-                    mFaceOverlay.setFacing(mCameraView.facing)
-                }
+                mFaceOverlay.setFacing(mCameraView.facing)
             }
         }
+
+        val calibrateToggle: ImageButton = findViewById(R.id.btn_calibrate_toggle)
+        val calibrateControls: View = findViewById(R.id.calibrate_controls)
+        calibrateToggle.setOnClickListener {
+            mCalibrating = !mCalibrating
+
+            calibrateToggle.setImageDrawable(
+                    if (mCalibrating) this.getDrawable(R.drawable.close_24)
+                    else this.getDrawable(R.drawable.control_camera_24))
+
+            flipButton.visibility = if (mCalibrating) View.INVISIBLE else View.VISIBLE
+            calibrateControls.visibility = if (mCalibrating) View.VISIBLE else View.INVISIBLE
+        }
+
+        val updateOffsetX = {step: Int ->
+            if (mCameraView.facing == Facing.FRONT) {
+                mFrontOffsetX += step
+            } else {
+                mBackOffsetX += step
+            }
+        }
+        val updateOffsetY = {step: Int ->
+            if (mCameraView.facing == Facing.FRONT) {
+                mFrontOffsetY += step
+            } else {
+                mBackOffsetY += step
+            }
+        }
+        val step = 5
+
+        findViewById<View>(R.id.btn_calibrate_up).setOnClickListener { updateOffsetY(-step); updateOffsets() }
+        findViewById<View>(R.id.btn_calibrate_down).setOnClickListener { updateOffsetY(step); updateOffsets() }
+        findViewById<View>(R.id.btn_calibrate_left).setOnClickListener { updateOffsetX(-step); updateOffsets() }
+        findViewById<View>(R.id.btn_calibrate_right).setOnClickListener { updateOffsetX(step); updateOffsets() }
     }
 
     private fun tryStartCamera() {
@@ -89,12 +146,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startCamera() {
-        mCameraView = findViewById(R.id.camera_view)
-        mFaceOverlay = findViewById(R.id.face_overlay)
         lifecycle.addObserver(MainActivityLifecycleObserver(mCameraView, mFaceOverlay))
     }
 
-    // TODO: MODULARIZE
     class MainActivityLifecycleObserver(
             private val cameraView: CameraView,
             private val faceOverlay: FaceOverlayView) : LifecycleObserver {

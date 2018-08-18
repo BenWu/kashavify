@@ -29,23 +29,69 @@
 
     </FrameLayout>
 
-    <android.support.design.widget.FloatingActionButton
-        android:id="@+id/btn_flip_camera"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_margin="16dp"
-        android:src="@drawable/camera_front_24" />
+        android:layout_gravity="bottom|end"
+        android:orientation="vertical">
 
-    <ca.benwu.kashavify.views.CustomFontTextView
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/btn_flip_camera"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:src="@drawable/camera_front_24" />
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/btn_calibrate_toggle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:src="@drawable/control_camera_24" />
+
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/calibrate_controls"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="32sp"
-        android:gravity="center"
-        android:text="@string/app_name"
-        android:textColor="@color/colorAccent"
-        android:textSize="48sp"
-        android:textAllCaps="true"
-        android:background="@drawable/gradient_black_top_bottom"/>
+        android:layout_height="match_parent"
+        android:visibility="invisible"
+        tools:visibility="visible">
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/btn_calibrate_up"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:layout_gravity="top|center_horizontal"
+            android:src="@drawable/arrow_drop_up_24" />
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/btn_calibrate_down"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:src="@drawable/arrow_drop_down_24" />
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/btn_calibrate_left"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:layout_gravity="left|center_vertical"
+            android:src="@drawable/arrow_left_24" />
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/btn_calibrate_right"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:layout_gravity="right|center_vertical"
+            android:src="@drawable/arrow_right_24" />
+
+    </FrameLayout>
 
 </FrameLayout>
