@@ -24,15 +24,21 @@ class MainActivity : AppCompatActivity() {
 
     private val CAMERA_PERMISSION_REQ_CODE = 123
 
+    lateinit var mLifecycleObserver: MainActivityLifecycleObserver
+
     lateinit var mCameraView: CameraView
+
     lateinit var mFaceOverlay: FaceOverlayView
 
     private var mCalibrating = false
-
     private var mFrontOffsetX = 0
     private var mFrontOffsetY = 0
     private var mBackOffsetX = 0
     private var mBackOffsetY = 0
+
+    private var mCanFlip = true
+
+    private var mCameraStarted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,63 +59,16 @@ class MainActivity : AppCompatActivity() {
         mCameraView = findViewById(R.id.camera_view)
         mFaceOverlay = findViewById(R.id.face_overlay)
 
-        val updateOffsets = {
-            if (mCameraView.facing == Facing.FRONT) {
-                mFaceOverlay.setOffsets(mFrontOffsetX, mFrontOffsetY)
-            } else {
-                mFaceOverlay.setOffsets(mBackOffsetX, mBackOffsetY)
-            }
-        }
-
         val cameraContainer : View = findViewById(R.id.camera_container)
         val flipButton : ImageButton = findViewById(R.id.btn_flip_camera)
-        var canFlip = true
         flipButton.setOnClickListener {
-            if (canFlip) {
-                canFlip = false
-
-                flipButton.animate().scaleX(0f).scaleY(0f).setDuration(1200)
-                        .setInterpolator(AccelerateInterpolator(2.5f)).withEndAction {
-                    flipButton.setImageDrawable(if (mCameraView.facing == Facing.FRONT)
-                        this.getDrawable(R.drawable.camera_front_24)
-                    else this.getDrawable(R.drawable.camera_rear_24))
-                    flipButton.animate().scaleX(1f).scaleY(1f).setDuration(800)
-                            .setInterpolator(OvershootInterpolator()).start()
-                }
-
-                cameraContainer.animate().alpha(0f).setDuration(1000).withEndAction {
-                    cameraContainer.animate().alpha(1f).setDuration(1000).withEndAction {
-                        canFlip = true
-                    }.start()
-                    updateOffsets()
-                }.start()
-
-                mCameraView.toggleFacing()
-                mFaceOverlay.setFacing(mCameraView.facing)
-            }
+            switchCamera(cameraContainer, flipButton)
         }
 
         val calibrateToggle: ImageButton = findViewById(R.id.btn_calibrate_toggle)
         val calibrateControls: View = findViewById(R.id.calibrate_controls)
         calibrateToggle.setOnClickListener {
-            mCalibrating = !mCalibrating
-
-            calibrateToggle.setImageDrawable(
-                    if (mCalibrating) this.getDrawable(R.drawable.close_24)
-                    else this.getDrawable(R.drawable.control_camera_24))
-
-            flipButton.isClickable = !mCalibrating
-            flipButton.visibility = View.VISIBLE
-            calibrateControls.visibility = View.VISIBLE
-
-            val animationDuration = 600L
-            val alpha = if (mCalibrating) 0f else 1f
-            flipButton.animate().alpha(alpha).setDuration(animationDuration).withEndAction {
-                if (mCalibrating) flipButton.visibility = View.INVISIBLE
-            }.start()
-            calibrateControls.animate().alpha(1f - alpha).setDuration(animationDuration).withEndAction {
-                if (!mCalibrating) calibrateControls.visibility = View.INVISIBLE
-            }.start()
+            toggleCalibration(calibrateControls, flipButton, calibrateToggle)
         }
 
         val updateOffsetX = {step: Int ->
@@ -156,7 +115,65 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startCamera() {
-        lifecycle.addObserver(MainActivityLifecycleObserver(mCameraView, mFaceOverlay))
+        mLifecycleObserver = MainActivityLifecycleObserver(mCameraView, mFaceOverlay)
+        lifecycle.addObserver(mLifecycleObserver)
+        mCameraStarted = true
+    }
+
+    private val updateOffsets = {
+        if (mCameraView.facing == Facing.FRONT) {
+            mFaceOverlay.setOffsets(mFrontOffsetX, mFrontOffsetY)
+        } else {
+            mFaceOverlay.setOffsets(mBackOffsetX, mBackOffsetY)
+        }
+    }
+
+    private fun switchCamera(cameraContainer: View, flipButton: ImageButton) {
+        if (mCanFlip && mCameraStarted) {
+            mCanFlip = false
+
+            flipButton.animate().scaleX(0f).scaleY(0f).setDuration(1200)
+                    .setInterpolator(AccelerateInterpolator(2.5f)).withEndAction {
+                        flipButton.setImageDrawable(if (mCameraView.facing == Facing.FRONT)
+                            this.getDrawable(R.drawable.camera_front_24)
+                        else this.getDrawable(R.drawable.camera_rear_24))
+                        flipButton.animate().scaleX(1f).scaleY(1f).setDuration(800)
+                                .setInterpolator(OvershootInterpolator()).start()
+                    }
+
+            cameraContainer.animate().alpha(0f).setDuration(1000).withEndAction {
+                cameraContainer.animate().alpha(1f).setDuration(1000).withEndAction {
+                    mCanFlip = true
+                }.start()
+                updateOffsets()
+            }.start()
+
+            mCameraView.toggleFacing()
+            mLifecycleObserver.flippy()
+            mFaceOverlay.setFace(null)
+            mFaceOverlay.setFacing(mCameraView.facing)
+        }
+    }
+
+    private fun toggleCalibration(calibrateControls: View, flipButton: View, calibrateToggle: ImageButton) {
+        mCalibrating = !mCalibrating
+
+        calibrateToggle.setImageDrawable(
+                if (mCalibrating) this.getDrawable(R.drawable.close_24)
+                else this.getDrawable(R.drawable.control_camera_24))
+
+        flipButton.isClickable = !mCalibrating
+        flipButton.visibility = View.VISIBLE
+        calibrateControls.visibility = View.VISIBLE
+
+        val animationDuration = 600L
+        val alpha = if (mCalibrating) 0f else 1f
+        flipButton.animate().alpha(alpha).setDuration(animationDuration).withEndAction {
+            if (mCalibrating) flipButton.visibility = View.INVISIBLE
+        }.start()
+        calibrateControls.animate().alpha(1f - alpha).setDuration(animationDuration).withEndAction {
+            if (!mCalibrating) calibrateControls.visibility = View.INVISIBLE
+        }.start()
     }
 
     class MainActivityLifecycleObserver(
@@ -169,6 +186,8 @@ class MainActivity : AppCompatActivity() {
                 .setLandmarkType(FirebaseVisionFaceDetectorOptions.ALL_LANDMARKS)
                 .build()
         private val detector = FirebaseVision.getInstance().getVisionFaceDetector(detectorOptions)
+
+        private var metadata: FirebaseVisionImageMetadata? = null
 
         @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
         fun startCamera() {
@@ -189,14 +208,16 @@ class MainActivity : AppCompatActivity() {
                     return@addFrameProcessor
                 }
 
-                val metadata = FirebaseVisionImageMetadata.Builder()
-                        .setFormat(FirebaseVisionImageMetadata.IMAGE_FORMAT_NV21)
-                        .setWidth(frame.size.width)
-                        .setHeight(frame.size.height)
-                        .setRotation(frame.rotation / 90)
-                        .build()
+                if (metadata == null) {
+                    metadata = FirebaseVisionImageMetadata.Builder()
+                            .setFormat(FirebaseVisionImageMetadata.IMAGE_FORMAT_NV21)
+                            .setWidth(frame.size.width)
+                            .setHeight(frame.size.height)
+                            .setRotation(frame.rotation / 90)
+                            .build()
+                }
 
-                val firebaseVisionImage = FirebaseVisionImage.fromByteArray(frame.data, metadata)
+                val firebaseVisionImage = FirebaseVisionImage.fromByteArray(frame.data, metadata!!)
 
                 faceOverlay.init(cameraView.width, cameraView.height, cameraView.facing)
 
@@ -223,6 +244,10 @@ class MainActivity : AppCompatActivity() {
         fun destroyCamera() {
             detector.close()
             cameraView.destroy()
+        }
+
+        fun flippy() {
+            metadata = null
         }
     }
 }
